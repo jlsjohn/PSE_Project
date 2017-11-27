@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+
+typedef uint16_t command_t;
+
+#define __PACKED __attribute__((__packed__))
+
+typedef enum{
+  A1,
+  A2,
+  S1,
+  S2
+} Device;
+
+typedef union{
+  uint8_t data[20];
+  struct{
+    unsigned int EnableA1 : 1;
+    unsigned int ComamndA1 : 8;
+    unsigned int EnableA2 : 1;
+    unsigned int ComamndA2 : 8;
+    unsigned int EnableS1 : 1;
+    unsigned int ComamndS1 : 8;
+    unsigned int EnableS2 : 1;
+    unsigned int ComamndS2 : 10;
+  } field;
+} Package;
+
+void addCommand(Package *pack, Device dev, command_t cmd){
+  switch (dev) {
+    case A1:
+      pack-> field.EnableA1 = 1;
+      pack-> field.ComamndA1 = cmd;
+      break;
+    case A2:
+      pack-> field.EnableA2 = 1;
+      pack-> field.ComamndA2 = cmd;
+      break;
+    case S1:
+      pack-> field.EnableS1 = 1;
+      pack-> field.ComamndS1 = cmd;
+      break;
+    case S2:
+      pack-> field.EnableS2 = 1;
+      pack-> field.ComamndS2 = cmd;
+      break;
+  }
+}
+
+void decode(Package *pack, uint8_t *raw){
+  memcpy(pack->data,raw,20);
+}
+
+void printPackage(Package *pack){
+  if(pack->field.EnableA1){
+    printf("CommandA1: %x\n", pack->field.CommandA1);
+  }
+  if(pack->field.EnableA2){
+    printf("CommandA2: %x\n", pack->field.CommandA2);
+  }
+  if(pack->field.EnableS1){
+    printf("CommandS1: %x\n", pack->field.CommandS1);
+  }
+  if(pack->field.EnableS2){
+    printf("CommandS2: %x\n", pack->field.CommandS2);
+  }
+}
+
+int main() {
+  Package test;
+  addCommand(&test, A1, 0b00000111);
+  addCommand(&test, A2, 0b1);
+  addCommand(&test, S1, 0x12);
+  addCommand(&test, S2, 0x1623);
+
+  printf("Size of package: %u\n",sizeof(test.field) );
+  /* code */
+  return 0;
+}
