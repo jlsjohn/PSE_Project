@@ -31,20 +31,18 @@ typedef struct _stepperInfoDefinition
     uint8_t _state;
     uint8_t _angle;
     uint16_t _speed;
-
     /* private */
     uint8_t _usedPins;
     stepperPin pins[5];
 } stepperInfo;
 
+	void stepper_set_speed(uint16_t numberOfStepsOsPaso);
+	void stepper_step(uint16_t numberOfSteps);
+	void stepper_init(uint8_t motor_pin_1, uint8_t motor_pin_2, uint8_t motor_pin_3, uint8_t motor_pin_4);
 
-void stepper_set_speed(uint16_t speed);
-void stepper_step(uint16_t numberOfSteps);
-void stepper_init(uint8_t motor_pin_1, uint8_t motor_pin_2, uint8_t motor_pin_3, uint8_t motor_pin_4);
-
-void stepper_set_angle(uint8_t angle);
-void stepper_open();
-void stepper_close();
+	void stepper_set_angle(uint8_t angle);
+	void stepper_open();
+	void stepper_close();
   // private:
   //   void stepMotor(int this_step);
 
