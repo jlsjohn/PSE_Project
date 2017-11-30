@@ -19,11 +19,8 @@ void task1(void *pvParameters)
     uint32_t const init_count = 0;
     while(1) {
         vTaskDelay(1000);
-        printf("duty cycle set to %d/UINT16_MAX%%\r\n", init_count);
-        // pwm_set_duty(count);
-        // count += UINT16_MAX/17;
-        // if (count > UINT16_MAX)
-        //     count = init_count;
+    	stepper_open();
+    	stepper_close();
     }
 }
 
@@ -33,19 +30,13 @@ void user_init(void)
     uart_set_baud(0, 115200);
 
     printf("SDK version:%s\n", sdk_system_get_sdk_version());
+    stepper_set_speed(100);
+    stepper_step(25);
+    stepper_init(10, 20, 30, 40);
 
-    // printf("pwm_init(1, [14])\n");
-    // pins[0] = 14;
-    // pwm_init(1, pins);
-
-    // printf("pwm_set_freq(1000)     # 1 kHz\n");
-    // pwm_set_freq(1000);
-
-    // printf("pwm_set_duty(UINT16_MAX/2)     # 50%%\n");
-    // pwm_set_duty(UINT16_MAX/2);
-
-    // printf("pwm_start()\n");
-    // pwm_start();
+    stepper_set_angle(90);
+    stepper_open();
+    stepper_close();
 
     xTaskCreate(task1, "tsk1", 256, NULL, 2, NULL);
 }

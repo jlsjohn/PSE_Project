@@ -5,49 +5,8 @@
 #include <FreeRTOS.h>
 #include <esp8266.h>
 
-// typedef struct stepperPinDefinition
-// {
-//     uint8_t pin;
-//     uint8_t divider;
-// } stepperPin;
-
-typedef union{
-  uint8_t data[6];
-  struct{
-    unsigned int bitPin1 : 1;
-    unsigned int bitPin2 : 1;
-    unsigned int bitPin3 : 1;
-    unsigned int bitPin4 : 1;
-    unsigned int bitPin5 : 1;
-    unsigned int pinNumber1 : 8;
-    unsigned int pinNumber2 : 8;
-    unsigned int pinNumber3 : 8;
-    unsigned int pinNumber4 : 8;
-    unsigned int pinNumber5 : 8;
-  } field;
-  uint8_t nPins;
-} stepperPin;
-
-// typedef enum {
-//     PERIOD_ON   = 0,
-//     PERIOD_OFF  = 1
-// } pwm_step_t;
-
-
-typedef struct _stepperInfoDefinition
-{
-    uint8_t _state;
-	uint8_t _angle;
-
-
-    uint16_t dutyCycle;
-
-    /* private */
-    uint8_t _usedPins;
-    stepperPin pins[5];
-} stepperInfo;
-
 static stepperInfo _stepperInfo;
+static stepperPin _stepperPin;
 
 static void frc1_interrupt_handler(void)
 {
@@ -65,31 +24,8 @@ static void frc1_interrupt_handler(void)
     // _stepperInfo._step = step;
 }
 
-void stepper_init(uint8_t nPins, const uint8_t* pins)
-{
-    /* Assert number of pins is correct */
-	switch(nPins){
-		case 2:{
-	        printf("Number of stepper pins is (%d)\n", nPins);
-		}
-		break;
-
-		case 4:{
-	        printf("Number of stepper pins is (%d)\n", nPins);
-		}
-		break;
-
-		case 5:{
-	        printf("Number of stepper pins is (%d)\n", nPins);		
-		}
-		break;
-
-		default:{
-	        printf("Incorrect number of PWM pins (%d)\n", nPins);
-	        return;
-		}
-
-	}
+void stepper_init(uint8_t motor_pin_1, uint8_t motor_pin_2, uint8_t motor_pin_3, uint8_t motor_pin_4){
+    printf("this function is stepper_init");
 
 
     // /* Initialize */
@@ -121,57 +57,96 @@ void stepper_init(uint8_t nPins, const uint8_t* pins)
 }
 
 void stepper_set_speed(uint16_t speed){
- 
+    printf("this function is stepper_set_speed");
 }
 
-void stepper_step(uint16_t numberOfSteps){
+void stepper_step(int stepsToMove)
+{
+  /*int steps_left = abs(stepsToMove);  // how many steps to take
+
+  // determine direction based on whether steps_to_mode is + or -:
+  if (stepsToMove > 0) { this->direction = 1; }
+  if (stepsToMove < 0) { this->direction = 0; }*/
+
+
+  // decrement the number of steps, moving one step each time:
+/*
+  while (steps_left > 0)
+  {
+    unsigned long now = micros();
+    // move only if the appropriate delay has passed:
+    if (now - this->last_step_time >= this->step_delay)
+    {
+      // get the timeStamp of when you stepped:
+      this->last_step_time = now;
+      // increment or decrement the step number,
+      // depending on direction:
+      if (this->direction == 1)
+      {
+        this->step_number++;
+        if (this->step_number == this->number_of_steps) {
+          this->step_number = 0;
+        }
+      }
+      else
+      {
+        if (this->step_number == 0) {
+          this->step_number = this->number_of_steps;
+        }
+        this->step_number--;
+      }
+      // decrement the steps left:
+      steps_left--;
+      // step the motor to step number 0, 1, ..., {3 or 10}
+        stepMotor(this->step_number % 4);
+    }
+  }*/
+    printf("this function is stepper_step");
+}
+void stepper_step_motor(uint16_t thisStep){
+ /*   switch (thisStep) {
+      case 0:  // 1010
+        gpio_write(motor_pin_1, HIGH);
+        gpio_write(motor_pin_2, LOW);
+        gpio_write(motor_pin_3, HIGH);
+        gpio_write(motor_pin_4, LOW);
+      break;
+      case 1:  // 0110
+        gpio_write(motor_pin_1, LOW);
+        gpio_write(motor_pin_2, HIGH);
+        gpio_write(motor_pin_3, HIGH);
+        gpio_write(motor_pin_4, LOW);
+      break;
+      case 2:  //0101
+        gpio_write(motor_pin_1, LOW);
+        gpio_write(motor_pin_2, HIGH);
+        gpio_write(motor_pin_3, LOW);
+        gpio_write(motor_pin_4, HIGH);
+      break;
+      case 3:  //1001
+        gpio_write(motor_pin_1, HIGH);
+        gpio_write(motor_pin_2, LOW);
+        gpio_write(motor_pin_3, LOW);
+        gpio_write(motor_pin_4, HIGH);
+      break;
+    }
+  }*/
+    printf("this function is stepper_step_motor");
  
 }
-
-///void pwm_set_duty(uint16_t duty){
-    // bool output;
-
-    // _stepperInfo.dutyCycle = duty;
-    // if (duty > 0 && duty < UINT16_MAX) {
-    //     pwm_restart();
-    //     return;
-    // }
-
-    // // 0% and 100% duty cycle are special cases: constant output.
-    // pwm_stop();
-    // _stepperInfo.running = 1;
-    // output = (duty == UINT16_MAX);
-    // for (uint8_t i = 0; i < _stepperInfo.usedPins; ++i)
-    // {
-    //     gpio_write(_stepperInfo.pins[i].pin, output);
-    // }
-//}
 
 void stepper_set_angle(uint8_t angle){
-    // if (_stepperInfo.running)
-    // {
-    //     pwm_stop();
-    //     pwm_start();
-    // }
+    //stepper_step(int stepsToMove)
+    printf("this function is stepper_set_angle");
 }
 
 void stepper_open(){
-    
-    // // Trigger ON
-    // uint8_t i = 0;
-    // for (; i < _stepperInfo.usedPins; ++i)
-    // {
-    //     gpio_write(_stepperInfo.pins[i].pin, true);
-    // }
-
-    // timer_set_load(FRC1, _stepperInfo._onLoad);
-    // timer_set_reload(FRC1, false);
-    // timer_set_interrupts(FRC1, true);
-    // timer_set_run(FRC1, true);
+    printf("this function is stepper_open");
+    //stepper_step(100);
 
     // _stepperInfo.running = 1;
 }
 
 void stepper_close(){
- 
+    printf("this function is stepper_close");
 }
