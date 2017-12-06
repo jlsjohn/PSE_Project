@@ -1,152 +1,243 @@
 #include "stepper.h"
-
 #include <espressif/esp_common.h>
 #include <espressif/sdk_private.h>
 #include <FreeRTOS.h>
 #include <esp8266.h>
 
-static stepperInfo _stepperInfo;
-static stepperPin _stepperPin;
+static valveInfo this_valveInfo;
+static valvePin this_valvePin;
 
-static void frc1_interrupt_handler(void)
+/******************************************************************
+*
+*	Função que permite a anitializacio na válvula
+*
+*******************************************************************/
+void valve_init(uint8_t motor_pin_1, uint8_t motor_pin_2, uint8_t motor_pin_3, uint8_t motor_pin_4){
+	
+	/* Save pins information */
+	this_valvePin.field.pin_number1 = motor_pin_1;
+	this_valvePin.field.pin_number2 = motor_pin_2;
+	this_valvePin.field.pin_number3 = motor_pin_3;
+	this_valvePin.field.pin_number4 = motor_pin_4;
+
+	/* Initialize pins */
+	gpio_enable(motor_pin_1, GPIO_OUTPUT);
+	gpio_enable(motor_pin_2, GPIO_OUTPUT);
+	gpio_enable(motor_pin_3, GPIO_OUTPUT);
+	gpio_enable(motor_pin_4, GPIO_OUTPUT);
+
+    /* Save pins information */
+    this_valveInfo._speed = SPEED_DEFAULT;
+    this_valveInfo._used_pins = USED_PINS_DEFAULT;
+    this_valveInfo._state = STATE_INIT;
+    this_valveInfo._angle = ANGLE_DEFAULT;
+   
+#ifdef DEBUG   
+    printf("\nthis function is valve_init\n");
+#endif
+}
+
+/******************************************************************
+*
+*	Função que permite a manipulação a velocidade de abertura o 
+*	fechamento na válvula
+*
+*******************************************************************/
+void valve_set_speed(uint8_t speed){
+	this_valveInfo._speed = speed;
+#ifdef DEBUG   
+    printf("\nthis function is valve_set_speed\n");
+#endif
+}
+
+/******************************************************************
+*
+*	Função que permite o tratameno das solicitaboes e dos dados
+*
+*******************************************************************/
+void valve_step(uint8_t steps_to_move, uint8_t direction)
 {
-    // uint8_t i = 0;
-    // bool out = true;
-    // uint32_t load = _stepperInfo._onLoad;
+  	/* determine direction */
+	this_valveInfo._direction = direction;
+  	this_valveInfo._number_of_steps = steps_to_move;
 
-
-    // for (; i < _stepperInfo.usedPins; ++i)
-    // {
-    //     gpio_write(_stepperInfo.pins[i].pin, out);
-    // }
-
-    // timer_set_load(FRC1, load);
-    // _stepperInfo._step = step;
-}
-
-void stepper_init(uint8_t motor_pin_1, uint8_t motor_pin_2, uint8_t motor_pin_3, uint8_t motor_pin_4){
-    printf("this function is stepper_init");
-
-
-    // /* Initialize */
-    // // _stepperInfo._maxLoad = 0;
-    // _stepperInfo._onLoad = 0;
-    // _stepperInfo._offLoad = 0;
-    // _stepperInfo._step = PERIOD_ON;
-
-    // /* Save pins information */
-    // _stepperInfo.usedPins = npins;
-
-    // uint8_t i = 0;
-    // for (; i < nPins; ++i)
-    // {
-    //     _stepperInfo.pins[i].pin = pins[i];
-
-    //     /* configure GPIOs */
-    //     gpio_enable(pins[i], GPIO_OUTPUT);
-    // }
-
-    // /* Stop timers and mask interrupts */
-    // pwm_stop();
-
-    // /* set up ISRs */
-    // _xt_isr_attach(INUM_TIMER_FRC1, frc1_interrupt_handler);
-
-    // /* Flag not running */
-    // _stepperInfo.running = 0;
-}
-
-void stepper_set_speed(uint16_t speed){
-    printf("this function is stepper_set_speed");
-}
-
-void stepper_step(int stepsToMove)
-{
-  /*int steps_left = abs(stepsToMove);  // how many steps to take
-
-  // determine direction based on whether steps_to_mode is + or -:
-  if (stepsToMove > 0) { this->direction = 1; }
-  if (stepsToMove < 0) { this->direction = 0; }*/
-
-
-  // decrement the number of steps, moving one step each time:
-/*
-  while (steps_left > 0)
+  /* decrement the number of steps, moving one step each time:*/
+  while (steps_to_move > 0)
   {
-    unsigned long now = micros();
-    // move only if the appropriate delay has passed:
-    if (now - this->last_step_time >= this->step_delay)
-    {
-      // get the timeStamp of when you stepped:
-      this->last_step_time = now;
-      // increment or decrement the step number,
-      // depending on direction:
-      if (this->direction == 1)
+
+      if (this_valveInfo._direction == 1)
       {
-        this->step_number++;
-        if (this->step_number == this->number_of_steps) {
-          this->step_number = 0;
+        this_valveInfo._step_number++;
+        if (this_valveInfo._step_number == this_valveInfo._number_of_steps) {
+          this_valveInfo._step_number = 0;
         }
       }
       else
       {
-        if (this->step_number == 0) {
-          this->step_number = this->number_of_steps;
+        if (this_valveInfo._step_number == 0) {
+          this_valveInfo._step_number = this_valveInfo._number_of_steps;
         }
-        this->step_number--;
+        this_valveInfo._step_number--;
       }
-      // decrement the steps left:
-      steps_left--;
-      // step the motor to step number 0, 1, ..., {3 or 10}
-        stepMotor(this->step_number % 4);
+      /* decrement the steps left:*/
+      steps_to_move--;
+
+#ifdef DEBUG   
+      	printf("%u",this_valveInfo._step_number);	
+#endif        
+        vTaskDelay(this_valveInfo._speed);
+        valve_step_motor(this_valveInfo._step_number % 4);
     }
-  }*/
-    printf("this function is stepper_step");
+
+#ifdef DEBUG   
+    printf("\nthis function is valve_step\n");
+#endif 
 }
-void stepper_step_motor(uint16_t thisStep){
- /*   switch (thisStep) {
+
+/******************************************************************
+*
+*	Função que permite a manipulação do motor da válvula
+*
+*******************************************************************/
+void valve_step_motor(uint16_t this_step){
+    switch (this_step) {
       case 0:  // 1010
-        gpio_write(motor_pin_1, HIGH);
-        gpio_write(motor_pin_2, LOW);
-        gpio_write(motor_pin_3, HIGH);
-        gpio_write(motor_pin_4, LOW);
+        gpio_write(this_valvePin.field.pin_number1, HIGH);
+        gpio_write(this_valvePin.field.pin_number2, LOW);
+        gpio_write(this_valvePin.field.pin_number3, HIGH);
+        gpio_write(this_valvePin.field.pin_number4, LOW);
       break;
       case 1:  // 0110
-        gpio_write(motor_pin_1, LOW);
-        gpio_write(motor_pin_2, HIGH);
-        gpio_write(motor_pin_3, HIGH);
-        gpio_write(motor_pin_4, LOW);
+        gpio_write(this_valvePin.field.pin_number1, LOW);
+        gpio_write(this_valvePin.field.pin_number2, HIGH);
+        gpio_write(this_valvePin.field.pin_number3, HIGH);
+        gpio_write(this_valvePin.field.pin_number4, LOW);
       break;
       case 2:  //0101
-        gpio_write(motor_pin_1, LOW);
-        gpio_write(motor_pin_2, HIGH);
-        gpio_write(motor_pin_3, LOW);
-        gpio_write(motor_pin_4, HIGH);
+        gpio_write(this_valvePin.field.pin_number1, LOW);
+        gpio_write(this_valvePin.field.pin_number2, HIGH);
+        gpio_write(this_valvePin.field.pin_number3, LOW);
+        gpio_write(this_valvePin.field.pin_number4, HIGH);
       break;
       case 3:  //1001
-        gpio_write(motor_pin_1, HIGH);
-        gpio_write(motor_pin_2, LOW);
-        gpio_write(motor_pin_3, LOW);
-        gpio_write(motor_pin_4, HIGH);
+        gpio_write(this_valvePin.field.pin_number1, HIGH);
+        gpio_write(this_valvePin.field.pin_number2, LOW);
+        gpio_write(this_valvePin.field.pin_number3, LOW);
+        gpio_write(this_valvePin.field.pin_number4, HIGH);
       break;
     }
-  }*/
-    printf("this function is stepper_step_motor");
- 
+
+#ifdef DEBUG   
+    printf("\nthis function is valve_step_motor\n");
+#endif 
 }
 
-void stepper_set_angle(uint8_t angle){
-    //stepper_step(int stepsToMove)
-    printf("this function is stepper_set_angle");
+/******************************************************************
+*
+*	Função que permite a manipulação angular na válvula
+*
+*******************************************************************/
+void valve_set_angle(uint8_t angle){
+	if(this_valveInfo._state == STATE_OPEN){
+		this_valveInfo._number_of_steps = angle / 5.625;
+		this_valveInfo._angle = angle;
+		this_valveInfo._direction = RIGHT;
+		valve_step(this_valveInfo._number_of_steps, RIGHT);
+	}
+	else if(this_valveInfo._state == STATE_CLOSED){
+		this_valveInfo._number_of_steps = angle / 5.625;
+		this_valveInfo._angle = angle;
+		this_valveInfo._direction = LEFT;
+		valve_step(MAX_STEP_NUMBER - this_valveInfo._number_of_steps, LEFT);
+	}
+	else if(this_valveInfo._state == STATE_HALF){
+		this_valveInfo._number_of_steps = this_valveInfo._angle / 5.625;
+		uint8_t dif_number_of_steps = this_valveInfo._number_of_steps;
+		if(angle >= this_valveInfo._angle){
+			this_valveInfo._number_of_steps = angle / 5.625;
+			this_valveInfo._angle = angle;
+			dif_number_of_steps = dif_number_of_steps - this_valveInfo._number_of_steps;
+			this_valveInfo._direction = RIGHT;
+
+		}
+		else{
+			this_valveInfo._number_of_steps = angle / 5.625;
+			this_valveInfo._angle = angle;
+			dif_number_of_steps = this_valveInfo._number_of_steps - dif_number_of_steps;
+			this_valveInfo._direction = LEFT;
+		}
+		valve_step(dif_number_of_steps,this_valveInfo._direction);
+	}
+
+	this_valveInfo._state = STATE_HALF;
+
+#ifdef DEBUG   
+    printf("\nthis function is valve_set_angle\nAngle set is = %u.\n", this_valveInfo._angle);
+#endif
 }
 
-void stepper_open(){
-    printf("this function is stepper_open");
-    //stepper_step(100);
+/******************************************************************
+*
+*	Função que permite a abertura completa da válvula
+*
+*******************************************************************/
+void valve_open(){
+	if(this_valveInfo._state != STATE_OPEN){
+    	if(this_valveInfo._state == STATE_CLOSED){
+	     	printf("\nthis function is valve_open\n");
+	    	this_valveInfo._number_of_steps = MAX_STEP_NUMBER;
+			this_valveInfo._angle = MIN_ANGLE;
+	    	this_valveInfo._direction = LEFT;
+	    	valve_step(this_valveInfo._number_of_steps,this_valveInfo._direction);
+    	}
+    	else if(this_valveInfo._state == STATE_HALF){
+			this_valveInfo._number_of_steps = this_valveInfo._angle / 5.625;
+			this_valveInfo._angle = MIN_ANGLE;
+			this_valveInfo._direction = LEFT;
+			valve_step(this_valveInfo._number_of_steps,this_valveInfo._direction);
+    	}
+    	printf("\nthis function is valve_open\n");
+    	this_valveInfo._state = STATE_OPEN;
+	}
 
-    // _stepperInfo.running = 1;
+#ifdef DEBUG   
+	else printf("\nthis valve is open\n");
+#endif
 }
 
-void stepper_close(){
-    printf("this function is stepper_close");
+/******************************************************************
+*
+*	Função que permite o fechamento completo da válvula
+*
+*******************************************************************/
+void valve_close(){
+	if(this_valveInfo._state != STATE_CLOSED){
+    	if(this_valveInfo._state == STATE_OPEN){
+	     	printf("\nthis function is valve_close\n");
+			this_valveInfo._angle = MAX_ANGLE;
+	    	this_valveInfo._direction = RIGHT;
+	    	this_valveInfo._number_of_steps = MAX_STEP_NUMBER;
+	    	valve_step(this_valveInfo._number_of_steps,this_valveInfo._direction);
+    	}
+    	else if(this_valveInfo._state == STATE_HALF){
+			this_valveInfo._number_of_steps = this_valveInfo._angle / 5.625;
+			uint8_t dif_number_of_steps = this_valveInfo._number_of_steps;
+			this_valveInfo._angle = MAX_ANGLE;
+			this_valveInfo._direction = RIGHT;
+			this_valveInfo._number_of_steps = MAX_STEP_NUMBER;
+			dif_number_of_steps = this_valveInfo._number_of_steps - dif_number_of_steps;
+			valve_step(dif_number_of_steps,this_valveInfo._direction);
+    	}
+
+#ifdef DEBUG   
+    	printf("\nthis function is valve_close\n");
+#endif
+
+    	this_valveInfo._state = STATE_CLOSED;
+	}
+
+#ifdef DEBUG   
+	else printf("\nthis valve is closed\n");
+#endif
+
 }
